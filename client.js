@@ -68,6 +68,8 @@ window.__ModuleLoader__.load({
     .mvh-x { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,.22); background: transparent; color: #eee; font-size: 18px; line-height: 1; cursor: pointer; }
     `;
 
+    const BOOT_CATALOG = {"version": "1.1.0", "product": "MV渲染器", "default": "pdoom", "sourceRepo": "https://github.com/xunfe/mv-renderer", "packages": {"ai": {"title": "AI娘角色主题曲MV", "bytes": 228732166, "url": "https://pub-1afc957e032a4de18e300f40f21195f1.r2.dev/mv/1.1.0/ai.zip", "sha256": "68e2f5759e2cf464a5c8b68716f9f802e56fa1c93d2b5b38bd00b2bf84efb811"}, "science": {"title": "科普简史", "bytes": 45920569, "url": "https://pub-1afc957e032a4de18e300f40f21195f1.r2.dev/mv/1.1.0/science.zip", "sha256": "8b7fe509e400fad0521fac098c80456a4f455823a4648b0d44d0b1f41ceef31a"}, "letters": {"title": "大肥鱼的情书", "bytes": 4537851, "url": "https://pub-1afc957e032a4de18e300f40f21195f1.r2.dev/mv/1.1.0/letters.zip", "sha256": "38db0aeec8381d4f75fc3dac986daf76ba536b4466a2b33d4537f036c5a6c5ca"}, "execute": {"title": "word excuse me", "bytes": 4112806, "url": "https://pub-1afc957e032a4de18e300f40f21195f1.r2.dev/mv/1.1.0/execute.zip", "sha256": "4c6548499d100fa9a225491d0cd567cb20f0ff06763932b7c684f1da0fe11a4e"}}, "mvs": [{"id": "pdoom", "title": "I'm Upping My P(doom)", "sub": "中文本地化", "en": "I'M UPPING MY P(DOOM)", "desc": "默认 MV。逐词双语歌词、18 个镜头，打开先看这一支。", "dur": "2:37", "pkg": null, "path": null, "file": "index.html", "cover": "pdoom.jpg", "frames": 0}, {"id": "world", "title": "世界还在写", "sub": "AI娘角色主题曲", "en": "THE WORLD IS STILL WRITING", "desc": "橙子、小海与大肥鱼三个角色，一支关于「写下去」的角色主题曲。", "dur": "3:24", "pkg": "ai", "path": "mv/world/index.html", "file": null, "cover": "world.jpg", "frames": 1}, {"id": "world2", "title": "世界还在写 · 墨海版", "sub": "我的重绘版 · 原版画法", "en": "THE WORLD IS STILL WRITING · INK SEA", "desc": "同一首歌，另一套「墨 / 海 / 页」的视觉；画面重写，人物沿用原版。", "dur": "3:24", "pkg": "ai", "path": "mv/world2/index.html", "file": null, "cover": "world2.jpg", "frames": 6}, {"id": "flip", "title": "我只是翻了个身", "sub": "大肥鱼的角色主题曲", "en": "I JUST TURNED OVER", "desc": "K 线海浪、灯塔与一次翻身，全片浏览器实时绘制。", "dur": "1:59", "pkg": "ai", "path": "mv/flip/index.html", "file": null, "cover": "flip.jpg", "frames": 1}, {"id": "future", "title": "那年你叫我未来", "sub": "姐姐的角色主题曲", "en": "YOU CALLED ME THE FUTURE", "desc": "从那年冬天的窗口出发，一路写到未来。", "dur": "2:36", "pkg": "ai", "path": "mv/future/index.html", "file": null, "cover": "future.jpg", "frames": 1}, {"id": "flip2", "title": "我只是翻了个身 · 深海版", "sub": "我的重绘版 · 原版画法", "en": "I JUST TURNED OVER · DEEP SEA", "desc": "数字海、红绿 K 线浪、藏灯、地图铺海面；逐句卡点。", "dur": "1:59", "pkg": "ai", "path": "mv/flip2/index.html", "file": null, "cover": "flip2.jpg", "frames": 6}, {"id": "future2", "title": "那年你叫我未来 · 晨光版", "sub": "我的重绘版 · 原版画法", "en": "YOU CALLED ME THE FUTURE · FIRST LIGHT", "desc": "对话框、破窗、一起飞出去，最后说一声早安。", "dur": "2:36", "pkg": "ai", "path": "mv/future2/index.html", "file": null, "cover": "future2.jpg", "frames": 6}, {"id": "math", "title": "数学简史", "sub": "两万年", "en": "A BRIEF HISTORY OF MATHEMATICS", "desc": "按原片 62 个真实切点逐镜重画，从骨上刻痕到千禧年难题。", "dur": "2:40", "pkg": "science", "path": "mv/math/index.html", "file": null, "cover": "math.jpg", "frames": 1}, {"id": "chemistry", "title": "化学简史", "sub": "118 种元素", "en": "A BRIEF HISTORY OF CHEMISTRY", "desc": "从石墨到 118 号元素，把整张周期表压进一首歌。", "dur": "3:38", "pkg": "science", "path": "mv/chemistry/index.html", "file": null, "cover": "chemistry.jpg", "frames": 1}, {"id": "hangtian", "title": "航天简史", "sub": "八十年", "en": "A SHORT HISTORY OF AEROSPACE", "desc": "1944 → 2026，V-2 到星舰，用真实影像重走一遍。", "dur": "4:11", "pkg": "science", "path": "mv/hangtian/index.html", "file": null, "cover": "hangtian.jpg", "frames": 1}, {"id": "shadow", "title": "地理简史", "sub": "The Shadow Line", "en": "A BRIEF HISTORY OF GEOGRAPHY", "desc": "一句词一张卡，从埃拉托色尼追到胡焕庸线。", "dur": "2:54", "pkg": "science", "path": "mv/shadow/index.html", "file": null, "cover": "shadow.jpg", "frames": 1}, {"id": "deepseek", "title": "一封情书", "sub": "DeepSeek", "en": "A LOVE LETTER TO CHINA", "desc": "只取原片音轨，30 句旁白、33 个镜头全部重写重画。", "dur": "2:14", "pkg": "letters", "path": "mv/deepseek/index.html", "file": null, "cover": "deepseek.jpg", "frames": 1}, {"id": "execute", "title": "world.execute (me) ;", "sub": "全代码离线版", "en": "WORLD.EXECUTE (ME) ;", "desc": "304 个镜头、全代码离线渲染；原曲需自备。", "dur": "3:32", "pkg": "execute", "path": "execute/index.html", "file": null, "cover": "execute.jpg", "frames": 1}], "installed": {"ai": false, "science": false, "letters": true, "execute": true}};
+
     const I = {
       play: h('svg', { viewBox: '0 0 24 24', fill: 'currentColor' }, h('path', { d: 'M7.5 4.8v14.4L19.8 12 7.5 4.8Z' })),
       down: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M12 3v11m0 0 4-4m-4 4-4-4' }), h('path', { d: 'M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3' })),
@@ -91,17 +93,20 @@ window.__ModuleLoader__.load({
     }
 
     function Page() {
-      const [cat, setCat] = useState(null);
+      const [cat, setCat] = useState(BOOT_CATALOG);
       const [err, setErr] = useState('');
       const [dl, setDl] = useState({});   // pkg -> {state, got, total, error}
       const [playing, setPlaying] = useState(null); // {title, src}
       const timers = useRef({});
 
-      const load = useCallback(() => {
+      const load = useCallback((attempt = 0) => {
         fetch('/mv-hub/api/catalog', { cache: 'no-store' })
-          .then((r) => r.json())
+          .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
           .then((d) => { setCat(d); setErr(''); })
-          .catch((e) => setErr(String(e && e.message || e)));
+          .catch((e) => {
+            if (attempt < 6) { setTimeout(() => load(attempt + 1), 400); return; }
+            setErr(String(e && e.message || e));
+          });
       }, []);
       useEffect(load, [load]);
 

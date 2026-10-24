@@ -1,0 +1,28 @@
+{
+  "name": "dsh-mv-hub",
+  "version": "1.1.0",
+  "private": true,
+  "description": "MV 合集：内置默认 MV，其他合集按需从 Cloudflare R2 下载；给 DSH 提供源码与画面参考接口",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "icon": "./icon.png",
+  "meta": {
+    "title": "MV 合集",
+    "description": "内置默认 P(doom)；AI娘 / 科普简史 / 情书 / world.execute 显示封面，按需从 Cloudflare R2 下载。附源码与画面参考接口。"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-slots"
+      ]
+    }
+  }
+}

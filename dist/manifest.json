@@ -1,0 +1,58 @@
+{
+  "version": "1.1.0",
+  "generated": "2026-10-24",
+  "packages": {
+    "ai": {
+      "id": "ai",
+      "title": "AI娘角色主题曲MV",
+      "items": [
+        "world",
+        "world2",
+        "flip",
+        "future",
+        "flip2",
+        "future2"
+      ],
+      "file": "ai.zip",
+      "bytes": 228732166,
+      "sha256": "68e2f5759e2cf464a5c8b68716f9f802e56fa1c93d2b5b38bd00b2bf84efb811",
+      "path": "mv/1.1.0/ai.zip"
+    },
+    "science": {
+      "id": "science",
+      "title": "科普简史",
+      "items": [
+        "math",
+        "chemistry",
+        "hangtian",
+        "shadow"
+      ],
+      "file": "science.zip",
+      "bytes": 45920569,
+      "sha256": "8b7fe509e400fad0521fac098c80456a4f455823a4648b0d44d0b1f41ceef31a",
+      "path": "mv/1.1.0/science.zip"
+    },
+    "letters": {
+      "id": "letters",
+      "title": "大肥鱼的情书",
+      "items": [
+        "deepseek"
+      ],
+      "file": "letters.zip",
+      "bytes": 4537851,
+      "sha256": "38db0aeec8381d4f75fc3dac986daf76ba536b4466a2b33d4537f036c5a6c5ca",
+      "path": "mv/1.1.0/letters.zip"
+    },
+    "execute": {
+      "id": "execute",
+      "title": "word excuse me",
+      "items": [
+        "execute"
+      ],
+      "file": "execute.zip",
+      "bytes": 4112806,
+      "sha256": "4c6548499d100fa9a225491d0cd567cb20f0ff06763932b7c684f1da0fe11a4e",
+      "path": "mv/1.1.0/execute.zip"
+    }
+  }
+}

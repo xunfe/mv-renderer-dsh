@@ -56,6 +56,7 @@ window.__ModuleLoader__.load({
       padding: 7px 10px; border-radius: 10px; background: rgba(8,9,11,.8); border: 1px solid rgba(255,255,255,.15); color: #f4ede2; font-size: 11px; }
     .mvh-lock svg { width: 14px; height: 14px; }
     .mvh-time { position: absolute; right: 8px; top: 8px; padding: 2px 7px; border-radius: 6px; background: rgba(0,0,0,.62); color: #eee; font: 500 10px/1.6 ui-monospace, monospace; }
+    .mvh-time.lt { right: auto; left: 8px; }
     .mvh-card-body { padding: 12px 13px 14px; }
     .mvh-card-body h4 { margin: 0 0 3px; font-size: 14px; line-height: 1.4; }
     .mvh-card-body .en { margin: 0 0 8px; color: var(--dsw-alias-label-secondary); font: 500 9.5px/1.4 ui-monospace, monospace; letter-spacing: .08em; }
@@ -328,7 +329,7 @@ window.__ModuleLoader__.load({
         xhr.send(f);
       };
 
-      const playCard = (e, extra) => {
+      const playCard = (e, extra, timeLeft) => {
         const locked = e.kind === 'pkg' && !installed[e.pkg];
         const st = e.pkg ? dl[e.pkg] : null;
         const busyDl = st && (st.state === 'downloading' || st.state === 'unzipping' || st.state === 'starting');
@@ -336,7 +337,7 @@ window.__ModuleLoader__.load({
           h('div', { className: 'mvh-thumb' + (locked ? ' lock' : '') },
             e.cover ? h('img', { src: e.cover, alt: e.title, loading: 'lazy' })
               : h('span', { className: 'ph' }, I.film),
-            h('span', { className: 'mvh-time' }, e.dur || (e.kind === 'user' ? '我的' : 'MV')),
+            h('span', { className: 'mvh-time' + (timeLeft ? ' lt' : '') }, e.dur || (e.kind === 'user' ? '我的' : 'MV')),
             locked ? h('span', { className: 'mvh-lock' },
               h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 6 } }, I.lock,
                 busyDl ? (st.state === 'unzipping' ? '解压中…' : Math.round((st.got || 0) / (st.total || 1) * 100) + '%') : '需下载'),
@@ -526,7 +527,7 @@ window.__ModuleLoader__.load({
               h('p', { className: 'mvh-sec-sub' }, builtin.length + ' 支内置 / 合集包作品 + ' + lib.length + ' 支我的（导入或发布）'))),
           h('div', { className: 'mvh-grid' },
             all.map((e) => e.kind === 'user'
-              ? h('div', { className: 'mvh-item', key: e.key }, playCard(e),
+              ? h('div', { className: 'mvh-item', key: e.key }, playCard(e, null, true),
                 h('button', { className: 'mvh-rm', type: 'button', title: '删除这份 MV',
                   onClick: (ev) => { ev.stopPropagation(); setModal({ kind: 'delmv', id: e.id, title: e.title }); } }, '×'))
               : playCard(e)))));
@@ -545,7 +546,7 @@ window.__ModuleLoader__.load({
             h('button', { className: 'mvh-btn', type: 'button', onClick: () => setModal({ kind: 'delcol', id: current.id, title: current.title }) }, I.trash, '删除合集'))),
         current.items.length
           ? h('div', { className: 'mvh-grid' }, current.items.map((e) => h('div', { className: 'mvh-item', key: e.key },
-            playCard(e),
+            playCard(e, null, true),
             h('button', { className: 'mvh-rm', type: 'button', title: '移出合集',
               onClick: (ev) => { ev.stopPropagation(); removeItem(e.key); } }, '×'))))
           : h('div', { className: 'mvh-empty' },

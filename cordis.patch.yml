@@ -1,0 +1,4 @@
+- insert:
+    - id: mv-hub
+      name: dsh-mv-hub
+      config: {}

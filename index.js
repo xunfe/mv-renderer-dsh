@@ -1,8 +1,9 @@
 /**
  * MV 合集 · DSH Host 插件
- * - 把内置的默认 MV（P(doom)）挂在 /mv-hub/site/，页面用 React 渲染，播放时内嵌这层画面。
- * - 其他合集包按需从 Cloudflare R2 下载到 dataDir/pkgs/<pkg>，挂到 /custom/<pkg>/（和软件版同一套路径）。
- * - 给 DSH 提供列表 / 源码 / 画面 / 下载四个工具，源码与画面都落在包内的 ref/ 下。
+ * - 内置默认 MV（P(doom)）挂在 /mv-hub/site/，页面用 React 渲染，播放时内嵌这层画面。
+ * - 合集包按需从 Cloudflare R2 下载到 dataDir/pkgs/<pkg>，挂到 /custom/<pkg>/。
+ * - 用户自己创建 / 导入 / 由 DSH 发布的 MV 放在 dataDir/user/，挂到 /custom/<id>/。
+ * - 工具：列表 / 源码 / 画面帧 / 下载 / 发布 / 导入 / 合集管理。
  */
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
@@ -12,80 +13,11 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const dl = require('./lib/mv-dl.cjs');
+const { createStore } = require('./lib/mv-store.cjs');
+const { createApi, ROOT_SCRIPTS } = require('./lib/mv-api.cjs');
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const SITE = path.join(ROOT, 'web');
 const CATALOG = JSON.parse(fs.readFileSync(path.join(ROOT, 'catalog.json'), 'utf8'));
-
-const MIME = {
-  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8', '.mp3': 'audio/mpeg', '.m4a': 'audio/mp4',
-  '.wav': 'audio/wav', '.flac': 'audio/flac', '.mp4': 'video/mp4', '.webm': 'video/webm',
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp',
-  '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf', '.otf': 'font/otf', '.txt': 'text/plain; charset=utf-8',
-};
-const mime = (p) => MIME[path.extname(p).toLowerCase()] || 'application/octet-stream';
-
-function json(res, obj, code = 200) {
-  const b = Buffer.from(JSON.stringify(obj), 'utf8');
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': b.length, 'Cache-Control': 'no-store' });
-  res.end(b);
-}
-
-function text(res, code, body) {
-  const b = Buffer.from(String(body), 'utf8');
-  res.writeHead(code, { 'Content-Type': 'text/plain; charset=utf-8', 'Content-Length': b.length });
-  res.end(b);
-}
-
-function serveFile(req, res, file) {
-  fs.stat(file, (err, st) => {
-    if (err || !st.isFile()) return text(res, 404, '404');
-    const total = st.size;
-    let start = 0, end = total - 1, code = 200;
-    const range = req.headers.range;
-    if (range && range.startsWith('bytes=')) {
-      const spec = range.slice(6).split(',').shift().trim();
-      const [a, b] = spec.split('-');
-      if (a === '') start = Math.max(0, total - parseInt(b, 10));
-      else { start = parseInt(a, 10); if (b) end = Math.min(parseInt(b, 10), total - 1); }
-      if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= total) {
-        res.writeHead(416, { 'Content-Range': 'bytes */' + total }); return res.end();
-      }
-      code = 206;
-    }
-    const headers = { 'Content-Type': mime(file), 'Content-Length': end - start + 1, 'Accept-Ranges': 'bytes', 'Cache-Control': 'no-cache' };
-    if (code === 206) headers['Content-Range'] = `bytes ${start}-${end}/${total}`;
-    res.writeHead(code, headers);
-    if (req.method === 'HEAD') return res.end();
-    fs.createReadStream(file, { start, end }).on('error', () => res.destroy()).pipe(res);
-  });
-}
-
-
-const SITE_PREFIXES = ['/assets/', '/audio/', '/data/', '/covers/', '/fonts/', '/pdoom-perf.js', '/rec-ui.js', '/mv-return.js', '/mv-start.js', '/mv-quality.js', '/mv-progress.js'];
-
-function serveSite(req, res, file) {
-  const ext = path.extname(file).toLowerCase();
-  const texty = ['.html', '.js', '.mjs', '.css', '.svg'].includes(ext);
-  if (!texty) return serveFile(req, res, file);
-  fs.readFile(file, 'utf8', (err, body) => {
-    if (err) return text(res, 404, '404');
-    let out = body;
-    for (const pre of SITE_PREFIXES) out = out.split('"' + pre).join('"/mv-hub/site' + pre).split("'" + pre).join("'/mv-hub/site" + pre);
-    const b = Buffer.from(out, 'utf8');
-    res.writeHead(200, { 'Content-Type': mime(file), 'Content-Length': b.length, 'Cache-Control': 'no-cache' });
-    res.end(b);
-  });
-}
-
-function safeRel(rel) {
-  const p = path.resolve('/', rel).slice(1);
-  if (p.split('/').some((s) => s === '..')) return null;
-  return p;
-}
 
 export const inject = ['tools', 'webServer'];
 
@@ -94,106 +26,31 @@ export function apply(ctx) {
   const pkgsDir = path.join(dataDir, 'pkgs');
   fs.mkdirSync(pkgsDir, { recursive: true });
 
-  const installed = () => {
-    const out = {};
-    for (const p of Object.keys(CATALOG.packages)) {
-      out[p] = fs.existsSync(path.join(pkgsDir, p, 'pkg.json'));
-    }
-    return out;
-  };
+  const store = createStore({ dataDir, root: ROOT, catalog: CATALOG });
+  const api = createApi({ root: ROOT, dataDir, pkgsDir, catalog: CATALOG, dl, store });
 
   /* ---------- /mv-hub ---------- */
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: '/mv-hub',
-    handler: async (req, res) => {
-      try {
-        const u = new URL(req.url, 'http://127.0.0.1');
-        const p = decodeURIComponent(u.pathname);
-        if (p === '/mv-hub/api/catalog') return json(res, { ...CATALOG, installed: installed() });
-        if (p === '/mv-hub/api/installed') return json(res, installed());
-        if (p === '/mv-hub/api/dl' && req.method === 'POST') {
-          const pkg = u.searchParams.get('pkg');
-          const P = CATALOG.packages[pkg];
-          if (!P) return json(res, { ok: false, error: '没有这个合集包' }, 404);
-          try {
-            dl.startDownload({ pkg, url: P.url, sha256: P.sha256, size: P.bytes, mvRoot: pkgsDir });
-            return json(res, { ok: true });
-          } catch (e) { return json(res, { ok: false, error: e.message }, 400); }
-        }
-        if (p === '/mv-hub/api/dl/status') return json(res, dl.status(u.searchParams.get('id')));
-        if (p === '/mv-hub/api/dl/cancel') return json(res, { ok: dl.cancel(u.searchParams.get('id')) });
-        if (p === '/mv-hub/api/source') {
-          const id = u.searchParams.get('id');
-          const mv = CATALOG.mvs.find((m) => m.id === id);
-          if (!mv) return json(res, { ok: false, error: '没有这支 MV' }, 404);
-          const dir = path.join(ROOT, 'ref', 'code', id);
-          const rel = u.searchParams.get('file');
-          if (!rel) {
-            const list = [];
-            const walk = (d, base) => {
-              for (const e of fs.readdirSync(d, { withFileTypes: true })) {
-                const f = path.join(d, e.name);
-                if (e.isDirectory()) walk(f, base);
-                else list.push({ file: path.relative(base, f).replace(/\\/g, '/'), bytes: fs.statSync(f).size });
-              }
-            };
-            if (fs.existsSync(dir)) walk(dir, dir);
-            return json(res, { ok: true, id, files: list });
-          }
-          const f = path.resolve(dir, rel);
-          if (!f.startsWith(dir + path.sep)) return json(res, { ok: false, error: '路径越界' }, 403);
-          if (!fs.existsSync(f)) return json(res, { ok: false, error: '文件不存在' }, 404);
-          const body = await fsp.readFile(f, 'utf8');
-          return json(res, { ok: true, id, file: rel, text: body.slice(0, 160000) });
-        }
-        if (p === '/mv-hub/api/frames') {
-          const id = u.searchParams.get('id');
-          const dir = path.join(ROOT, 'ref', 'frames', id);
-          if (!fs.existsSync(dir)) return json(res, { ok: true, id, frames: [] });
-          const frames = fs.readdirSync(dir).filter((f) => /\.(webp|png|jpg)$/i.test(f)).sort()
-            .map((f) => ({ file: f, url: '/mv-hub/frames/' + encodeURIComponent(id) + '/' + encodeURIComponent(f), path: path.join(dir, f) }));
-          return json(res, { ok: true, id, frames });
-        }
-        if (p.startsWith('/mv-hub/frames/')) {
-          const rel = safeRel(p.slice('/mv-hub/frames/'.length));
-          if (!rel) return text(res, 403, '403');
-          return serveFile(req, res, path.join(ROOT, 'ref', 'frames', rel));
-        }
-        if (p.startsWith('/mv-hub/site/')) {
-          const rel = safeRel(p.slice('/mv-hub/site/'.length));
-          if (!rel) return text(res, 403, '403');
-          const f = path.join(SITE, rel);
-          return serveSite(req, res, f.endsWith('/') ? path.join(f, 'index.html') : f);
-        }
-        if (p === '/mv-hub/site') { res.writeHead(302, { Location: '/mv-hub/site/index.html' }); return res.end(); }
-        return text(res, 404, '404');
-      } catch (e) {
-        try { text(res, 500, '500 ' + e.message); } catch (_) {}
-      }
-    },
+    handler: api.handle,
   }), 'mv-hub-routes');
 
-  /* ---------- /custom/<pkg>（下载好的合集包，路径和软件版一致） ---------- */
+  /* ---------- /custom/<pkg | mv> ---------- */
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',
     path: '/custom',
-    handler: (req, res) => {
-      try {
-        const u = new URL(req.url, 'http://127.0.0.1');
-        const p = decodeURIComponent(u.pathname);
-        const rest = p.slice('/custom/'.length).split('/');
-        const pkg = rest.shift();
-        if (!pkg || !/^[a-z0-9._-]+$/i.test(pkg) || !CATALOG.packages[pkg]) return text(res, 404, '404');
-        const base = path.resolve(pkgsDir, pkg);
-        const rel = rest.join('/') || 'index.html';
-        const f = path.resolve(base, rel);
-        if (f !== base && !f.startsWith(base + path.sep)) return text(res, 403, '403');
-        if (!fs.existsSync(f)) return text(res, 404, '404');
-        return serveFile(req, res, f);
-      } catch (e) { text(res, 500, '500 ' + e.message); }
-    },
+    handler: api.handle,
   }), 'mv-custom-routes');
+
+  /* ---------- 共享播放脚本（导入的 MV 用根路径引用它们） ---------- */
+  for (const name of ROOT_SCRIPTS) {
+    ctx.effect(() => ctx.webServer.register({
+      kind: 'exact',
+      path: '/' + name,
+      handler: api.serveRootScript(name),
+    }), 'mv-root-' + name);
+  }
 
   /* ---------- DSH 工具 ---------- */
   const tool = (name, description, properties, required, fn) => ctx.tools.register({
@@ -207,42 +64,59 @@ export function apply(ctx) {
     execute: async (args) => String(await fn(args)),
   });
 
+  const countAll = () => {
+    const lib = store.library();
+    const cols = store.resolveCollections();
+    return { lib, cols };
+  };
+
   ctx.effect(() => tool(
     'mv_hub_catalog',
-    '列出 MV 合集：默认 MV、各合集包（大小/是否已下载）、13 支 MV 的标题、时长与源码目录。做 MV 前先调它。',
+    '列出 MV 合集与作品：内置 13 支 MV、合集包（大小/是否已下载）、用户合集、导入/发布的 MV。做 MV 前先调它。',
     {}, [],
     () => {
-      const ins = installed();
+      const ins = api.installed();
+      const { lib, cols } = countAll();
       const lines = [`MV渲染器 ${CATALOG.version}（默认 MV：P(doom)，本地内置）`];
       for (const [id, P] of Object.entries(CATALOG.packages)) {
         lines.push(`合集包 ${id}「${P.title}」 ${(P.bytes / 1e6).toFixed(0)} MB — ${ins[id] ? '已下载' : '未下载（可调 mv_hub_download）'}`);
       }
-      lines.push('MV：');
+      lines.push('内置 MV：');
       for (const m of CATALOG.mvs) {
         lines.push(`- ${m.id} ${m.title} ${m.dur}${m.pkg ? ` [包 ${m.pkg}${ins[m.pkg] ? ' 已下载' : ''}]` : ' [内置默认]'} 源码 ref/code/${m.id}`);
       }
-      lines.push('接口：mv_hub_source(id,file?) 读源码；mv_hub_frames(id) 拿画面帧路径；mv_hub_download(pkg) 下载合集包。');
+      lines.push(`用户合集（${cols.length}）：`);
+      if (!cols.length) lines.push('- 还没有。可以用 mv_hub_collections 新建，或发布时带 collection。');
+      for (const c of cols) {
+        const names = c.items.map((i) => i.title).join(' / ');
+        lines.push(`- ${c.id}「${c.title}」 ${c.count} 支${names ? '：' + names : ''}`);
+      }
+      lines.push(`我的 MV（导入 / 发布，${lib.length}）：`);
+      if (!lib.length) lines.push('- 还没有。mv_hub_import(zip) 或 mv_hub_publish(dir/files) 会放进来。');
+      for (const m of lib) lines.push(`- u:${m.id} ${m.title} ${m.dur || ''} 源码 u:${m.id} 播放 /custom/${m.id}/${m.entry}`);
+      lines.push('接口：mv_hub_source(id,file?) 读源码（用户 MV 用 u:<id>）；mv_hub_frames(id) 拿画面帧；mv_hub_download(pkg) 下载合集包；mv_hub_publish 直接发布到插件；mv_hub_import 导入 zip；mv_hub_collections 管理合集。');
       return lines.join('\n');
     },
   ), 'mv-tool-catalog');
 
   ctx.effect(() => tool(
     'mv_hub_source',
-    '读某一支 MV 的源码。不传 file 时列出文件；传 file（相对路径）返回源码文本。用于参考镜头的写法、mvkit 用法与时间轴。',
+    '读某一支 MV 的源码。不传 file 时列出文件；传 file（相对路径）返回源码文本。内置 MV 用 id（如 world2）；导入/发布的用 u:<id>。',
     {
-      id: { type: 'string', description: 'MV id，例如 world2 / flip2 / math / deepseek' },
+      id: { type: 'string', description: 'MV id，例如 world2 / math / u:k3f9a1' },
       file: { type: 'string', description: '可选，相对路径，例如 src/main.js' },
     }, ['id'],
     async ({ id, file }) => {
-      const dir = path.join(ROOT, 'ref', 'code', id);
-      if (!fs.existsSync(dir)) return `没有 ${id} 的源码目录。先 mv_hub_catalog 看可用 id。`;
+      const key = String(id || '');
+      const dir = store.sourceDir(key.startsWith('u:') ? key.slice(2) : key, key);
+      if (!dir) return `没有 ${id} 的源码目录。先 mv_hub_catalog 看可用 id。`;
       if (!file) {
         const list = [];
         const walk = (d, base) => {
           for (const e of fs.readdirSync(d, { withFileTypes: true })) {
             const f = path.join(d, e.name);
             if (e.isDirectory()) walk(f, base);
-            else list.push(`${path.relative(base, f).replace(/\\/g, '/')}  ${fs.statSync(f).size} B`);
+            else if (e.name !== 'meta.json') list.push(`${path.relative(base, f).replace(/\\/g, '/')}  ${fs.statSync(f).size} B`);
           }
         };
         walk(dir, dir);
@@ -257,12 +131,14 @@ export function apply(ctx) {
 
   ctx.effect(() => tool(
     'mv_hub_frames',
-    '拿某一支 MV 的参考画面帧（本地绝对路径）。用 read_image 打开这些路径看画面。注意：只有世界还在写三支重绘版有 6 帧逐段时间，其余是封面帧。',
-    { id: { type: 'string', description: 'MV id' } }, ['id'],
+    '拿某一支 MV 的参考画面帧（本地绝对路径）。用 read_image 打开这些路径看画面。内置 MV 用 id；导入/发布的用 u:<id>（发布时带 frames 才有）。',
+    { id: { type: 'string', description: 'MV id（u:<id> 也行）' } }, ['id'],
     ({ id }) => {
-      const dir = path.join(ROOT, 'ref', 'frames', id);
-      if (!fs.existsSync(dir)) return `没有 ${id} 的参考帧。`;
+      const key = String(id || '');
+      const dir = store.framesDir(key.startsWith('u:') ? key.slice(2) : key, key);
+      if (!dir || !fs.existsSync(dir)) return `没有 ${id} 的参考帧。`;
       const files = fs.readdirSync(dir).filter((f) => /\.(webp|png|jpg|jpeg)$/i.test(f)).sort();
+      if (!files.length) return `${id} 没有参考帧。`;
       return `${id} 参考帧 ${files.length} 张：\n` + files.map((f) => path.join(dir, f)).join('\n');
     },
   ), 'mv-tool-frames');
@@ -278,4 +154,124 @@ export function apply(ctx) {
       return `已开始下载「${P.title}」（${(P.bytes / 1e6).toFixed(0)} MB），进度见 mv_hub_catalog 或插件页面。`;
     },
   ), 'mv-tool-download');
+
+  ctx.effect(() => tool(
+    'mv_hub_publish',
+    '把做好的 MV 直接发布到插件里（用户马上能在 MV 合集页面看到并播放）。优先用 dir 指向构建好的目录（里面要有 index.html）；也可以逐文件给 files。可以顺带指定合集、封面和画面帧。返回播放地址与源码 key（u:<id>）。',
+    {
+      title: { type: 'string', description: 'MV 标题（必填）' },
+      id: { type: 'string', description: '可选 id（小写英文/数字），不填自动生成' },
+      sub: { type: 'string', description: '副标题，如「大肥鱼的角色主题曲」' },
+      en: { type: 'string', description: '英文名' },
+      desc: { type: 'string', description: '一两句简介' },
+      dur: { type: 'string', description: '时长，如 3:24' },
+      entry: { type: 'string', description: '入口页，默认 index.html' },
+      dir: { type: 'string', description: '构建好的 MV 目录（绝对路径或相对工作区）；复制整棵目录' },
+      files: {
+        type: 'array', description: '逐文件发布（dir 为空时用）',
+        items: {
+          type: 'object',
+          properties: { path: { type: 'string' }, text: { type: 'string' }, base64: { type: 'string' } },
+          required: ['path'], additionalProperties: false,
+        },
+      },
+      cover: { type: 'string', description: '封面图绝对路径（可选）' },
+      frames: { type: 'array', items: { type: 'string' }, description: '参考画面帧图片绝对路径（可选，第一张会当封面）' },
+      framesDir: { type: 'string', description: '参考帧目录（可选）' },
+      collection: { type: 'string', description: '合集 id 或合集名；不存在就新建（可选）' },
+      collectionDesc: { type: 'string', description: '新建合集时的简介（可选）' },
+    }, ['title'],
+    async (a) => {
+      let files = Array.isArray(a.files) ? a.files : [];
+      let frames = Array.isArray(a.frames) ? a.frames.filter(Boolean) : [];
+      if (a.framesDir) {
+        try {
+          frames = frames.concat(fs.readdirSync(a.framesDir).filter((f) => /\.(png|jpe?g|webp)$/i.test(f)).sort().map((f) => path.join(a.framesDir, f)));
+        } catch (_) {}
+      }
+      if (frames.length > 12) frames = frames.slice(0, 12);
+      const out = await store.publish({
+        collection: a.collection ? { id: a.collection, title: safeName(a.collection), desc: a.collectionDesc } : null,
+        mv: { id: a.id, title: a.title, sub: a.sub, en: a.en, desc: a.desc, dur: a.dur, entry: a.entry },
+        files,
+        cover: a.cover || null,
+        frames,
+        srcDir: a.dir || null,
+      });
+      return [
+        `已发布「${out.meta.title}」到插件：`,
+        `- 播放：/custom/${out.id}/${out.meta.entry}`,
+        `- 源码 key：u:${out.id}（mv_hub_source id=u:${out.id}）`,
+        `- 画面帧：${out.meta.frames && out.meta.frames.length ? out.meta.frames.length + ' 张' : '没有（下次带 frames 或 framesDir）'}`,
+        out.meta.collection ? `- 合集：${out.meta.collection}` : '- 未归入合集（可在插件页面里收进合集）',
+        '用户在「MV 合集」页面刷新就能看到。',
+      ].join('\n');
+    },
+  ), 'mv-tool-publish');
+
+  ctx.effect(() => tool(
+    'mv_hub_import',
+    '把一个 zip 导入插件（构建好的 MV 项目，入口为 index.html）。导入后用户能在页面里看到并播放，也可归入某个合集。',
+    {
+      zip: { type: 'string', description: 'zip 绝对路径' },
+      title: { type: 'string', description: '标题（可选，默认取文件名）' },
+      collection: { type: 'string', description: '合集 id 或合集名（可选）' },
+    }, ['zip'],
+    async ({ zip, title, collection }) => {
+      const p = path.resolve(String(zip || ''));
+      const st = fs.existsSync(p) ? fs.statSync(p) : null;
+      if (!st || !st.isFile()) return `找不到 zip：${zip}`;
+      const out = await store.importZip(p, {
+        title: title || path.basename(p).replace(/\.zip$/i, ''),
+        collection: collection ? store.ensureCollection({ id: collection, title: safeName(collection) }).id : null,
+      });
+      return `已导入「${out.meta.title}」：播放 /custom/${out.id}/${out.meta.entry}，源码 key u:${out.id}。`;
+    },
+  ), 'mv-tool-import');
+
+  ctx.effect(() => tool(
+    'mv_hub_collections',
+    '管理插件里的用户合集：列出 / 新建 / 改名 / 删除，往合集里加或移出作品（内置 id 如 pdoom、world，用户 MV 用 u:<id>）。',
+    {
+      action: { type: 'string', enum: ['list', 'create', 'rename', 'delete', 'add', 'remove'], description: '操作' },
+      id: { type: 'string', description: '合集 id（create 时可省略）' },
+      title: { type: 'string', description: '合集名（create/rename 用）' },
+      desc: { type: 'string', description: '合集简介' },
+      mvs: { type: 'array', items: { type: 'string' }, description: '要加入/移出的作品 id 或 key' },
+    }, ['action'],
+    (a) => {
+      const action = String(a.action || 'list');
+      const mvs = Array.isArray(a.mvs) ? a.mvs.map(String) : [];
+      if (action === 'list') {
+        const cols = store.resolveCollections();
+        if (!cols.length) return '还没有用户合集。';
+        return cols.map((c) => `${c.id}「${c.title}」${c.desc ? ' — ' + c.desc : ''}\n  ${c.count} 支：${c.items.map((i) => i.key + ' ' + i.title).join(' / ')}`).join('\n');
+      }
+      if (action === 'create') {
+        const col = store.createCollection({ id: a.id, title: a.title, desc: a.desc });
+        if (mvs.length) store.addItems(col.id, mvs);
+        return `已新建合集 ${col.id}「${col.title}」${mvs.length ? '，加入 ' + mvs.length + ' 支作品' : ''}。`;
+      }
+      if (action === 'rename') {
+        const col = store.updateCollection({ id: a.id, title: a.title, desc: a.desc });
+        return `已更新合集 ${col.id}「${col.title}」。`;
+      }
+      if (action === 'delete') {
+        store.deleteCollection(a.id);
+        return `已删除合集 ${a.id}（里面的 MV 文件保留）。`;
+      }
+      if (action === 'add' || action === 'remove') {
+        if (!mvs.length) return 'mvs 不能为空。';
+        const col = action === 'add' ? store.addItems(a.id, mvs) : store.removeItems(a.id, mvs);
+        return `合集 ${col.id}「${col.title}」现在 ${col.items.length} 支。`;
+      }
+      return '未知操作：' + action;
+    },
+  ), 'mv-tool-collections');
+}
+
+function safeName(s) {
+  if (typeof s !== 'string' || !s) return '未命名合集';
+  if (/^[a-z0-9][a-z0-9._-]{0,63}$/i.test(s)) return s;
+  return s.slice(0, 80);
 }

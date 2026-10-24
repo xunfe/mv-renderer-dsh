@@ -1,9 +1,11 @@
 {
   "name": "dsh-mv-hub",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
-  "description": "MV 合集：内置默认 MV，其他合集按需从 Cloudflare R2 下载；给 DSH 提供源码与画面参考接口",
+  "description": "MV 合集：内置默认 MV、合集包按需下载，支持导入自己的 MV、新建合集，并给 DSH / 外部 agent 预留发布接口",
+  "license": "AGPL-3.0",
   "type": "module",
+  "engines": { "node": ">=18" },
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
@@ -12,8 +14,21 @@
   "icon": "./icon.png",
   "meta": {
     "title": "MV 合集",
-    "description": "内置默认 P(doom)；AI娘 / 科普简史 / 情书 / world.execute 显示封面，按需从 Cloudflare R2 下载。附源码与画面参考接口。"
+    "description": "内置默认 P(doom)，其他合集按需下载；导入自己的 MV、新建合集，DSH 可以直接把做好的 MV 发布进来。附源码、画面帧与发布接口。"
   },
+  "files": [
+    "index.js",
+    "client.js",
+    "catalog.json",
+    "cordis.patch.yml",
+    "icon.png",
+    "lib/",
+    "ref/",
+    "web/",
+    "docs/",
+    "README.md",
+    "LICENSE"
+  ],
   "dsh": {
     "bundle": { "patch": "./cordis.patch.yml" },
     "client": {

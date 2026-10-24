@@ -29,6 +29,23 @@ export function apply(ctx) {
   const store = createStore({ dataDir, root: ROOT, catalog: CATALOG });
   const api = createApi({ root: ROOT, dataDir, pkgsDir, catalog: CATALOG, dl, store });
 
+  /* ---------- 给模型的说明：注册成按需加载的 skill（正文不进常驻上下文） ---------- */
+  try {
+    const skills = ctx.get('skills');
+    const guidePath = path.join(ROOT, 'docs', 'MODEL.md');
+    if (skills && fs.existsSync(guidePath)) {
+      const guide = fs.readFileSync(guidePath, 'utf8');
+      ctx.effect(() => skills.register({
+        name: 'mv-hub',
+        description: '做 / 发布 / 管理 MV 合集：读内置 MV 源码与画面帧、把构建好的 MV 发布进插件、建合集、导入 zip。',
+        whenToUse: '用户要做代码 MV、参考内置 MV 的画面或写法、把 MV 放进 MV 合集插件、管理插件里的合集或导入 MV 时。',
+        content: guide,
+      }), 'mv-hub-skill');
+    }
+  } catch (e) {
+    if (ctx.logger && ctx.logger.warn) ctx.logger.warn('mv-hub skill 注册失败：' + ((e && e.message) || e));
+  }
+
   /* ---------- /mv-hub ---------- */
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',

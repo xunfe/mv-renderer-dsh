@@ -17,9 +17,9 @@
 ```bash
 # 推荐：用打好的软件包一键装
 # 在 DSH 里 plugin_manager install_bundle，target 填 tgz 的绝对路径：
-#   /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.1.tgz
+#   /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.2.tgz
 # 或命令行：
-dsh plugin install /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.1.tgz
+dsh plugin install /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.2.tgz
 ```
 
 从源码目录装（开发时）：
@@ -90,6 +90,7 @@ curl -s --data-binary @demo.zip -H 'Content-Type: application/zip' \
 | `lib/mv-api.cjs` | HTTP 路由：目录、源码、帧、合集增删、导入、发布、删除 |
 | `lib/mv-dl.cjs` | 无依赖的 Node 下载 / sha256 / zip 解压 |
 | `docs/API.md` | 给 DSH 与外部 agent 的接口文档 |
+| `docs/MODEL.md` | 给模型的说明；注册成按需加载的 `mv-hub` skill，正文不进常驻上下文 |
 | `ref/code/<id>/` | 每支 MV 的源码（工具读） |
 | `ref/frames/<id>/` | 参考画面帧（工具读） |
 
@@ -97,8 +98,25 @@ curl -s --data-binary @demo.zip -H 'Content-Type: application/zip' \
 
 ```bash
 cd plugin
-npm pack --pack-destination ../dist    # 产出 dsh-mv-hub-1.2.1.tgz（含 web/ 与 ref/）
+npm pack --pack-destination ../dist              # dsh-mv-hub-1.2.2.tgz（含 web/ 与 ref/）
+python3 ../tools/pack-installer.py               # dsh-mv-hub-1.2.2.zip（安装脚本 + 使用说明 + tgz）
 ```
+
+在插件仓根目录（本 README 与 package.json 同级）打包则用：
+
+```bash
+npm pack --pack-destination dist && python3 tools/pack-installer.py
+```
+
+## 安装包
+
+`dist/dsh-mv-hub-<版本>.zip` 解压后第一层是 `安装.sh`、`使用说明.md` 和 `package/*.tgz`：
+在 DSH 终端里 `bash 安装.sh` 即可装好（默认 web profile，可传 profile 名），重启 DSH 生效。
+
+## 给模型
+
+`docs/MODEL.md` 在插件启动时注册为运行时 skill `mv-hub`：目录里只有名称和一句话，
+正文在模型需要时通过 `skill` 工具加载，平时不用不占上下文。
 
 ## 许可
 

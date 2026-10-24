@@ -143,6 +143,7 @@ window.__ModuleLoader__.load({
       back: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'm14.5 5.5-6.5 6.5 6.5 6.5' })),
       trash: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v5M14 11v5' })),
       check: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.4, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'm5 12.5 4.5 4.5L19 7' })),
+      refresh: h('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.9, strokeLinecap: 'round', strokeLinejoin: 'round' }, h('path', { d: 'M20 11a8 8 0 1 0-2.3 5.7' }), h('path', { d: 'M20 5v6h-6' })),
     };
 
     const COVERS = { pdoom: 'pdoom.jpg', world: 'world.jpg', world2: 'world2.jpg', flip: 'flip.jpg', future: 'future.jpg', flip2: 'flip2.jpg', future2: 'future2.jpg', math: 'math.jpg', chemistry: 'chemistry.jpg', hangtian: 'hangtian.jpg', shadow: 'shadow.jpg', deepseek: 'deepseek.jpg', execute: 'execute.jpg' };
@@ -485,6 +486,7 @@ window.__ModuleLoader__.load({
             h('h1', { className: 'mvh-title' }, 'MV 合集'),
             h('p', { className: 'mvh-sub' }, '默认内置 P(doom)。自己的 MV 可以导入，也可以让 DSH 直接发布进来；合集只是归档，不复制文件。')),
           h('div', { className: 'mvh-actions' },
+            h('button', { className: 'mvh-btn', type: 'button', title: '刷新', onClick: () => { load(); say('已刷新'); } }, I.refresh),
             h('button', { className: 'mvh-btn', type: 'button', onClick: () => setModal({ kind: 'create', title: '', desc: '' }) }, I.plus, '新建合集'),
             h('button', { className: 'mvh-btn primary', type: 'button', onClick: () => { setUpload(null); setModal({ kind: 'import', title: '', collection: '', file: null }); } }, I.imp, '导入 MV'))),
 

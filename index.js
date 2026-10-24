@@ -166,7 +166,7 @@ export function apply(ctx) {
       desc: { type: 'string', description: '一两句简介' },
       dur: { type: 'string', description: '时长，如 3:24' },
       entry: { type: 'string', description: '入口页，默认 index.html' },
-      dir: { type: 'string', description: '构建好的 MV 目录（绝对路径或相对工作区）；复制整棵目录' },
+      dir: { type: 'string', description: '构建好的 MV 目录（绝对路径，如 /sdcard/…；复制整棵目录）' },
       files: {
         type: 'array', description: '逐文件发布（dir 为空时用）',
         items: {

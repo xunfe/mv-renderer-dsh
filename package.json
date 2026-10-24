@@ -1,6 +1,6 @@
 {
   "name": "dsh-mv-hub",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "MV 合集：内置默认 MV、合集包按需下载，支持导入自己的 MV、新建合集，并给 DSH / 外部 agent 预留发布接口",
   "license": "AGPL-3.0",

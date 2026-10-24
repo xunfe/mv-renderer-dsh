@@ -17,9 +17,9 @@
 ```bash
 # 推荐：用打好的软件包一键装
 # 在 DSH 里 plugin_manager install_bundle，target 填 tgz 的绝对路径：
-#   /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.0.tgz
+#   /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.1.tgz
 # 或命令行：
-dsh plugin install /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.0.tgz
+dsh plugin install /sdcard/我的文件/Dsh/mv110/dist/dsh-mv-hub-1.2.1.tgz
 ```
 
 从源码目录装（开发时）：
@@ -97,7 +97,7 @@ curl -s --data-binary @demo.zip -H 'Content-Type: application/zip' \
 
 ```bash
 cd plugin
-npm pack --pack-destination ../dist    # 产出 dsh-mv-hub-1.2.0.tgz（含 web/ 与 ref/）
+npm pack --pack-destination ../dist    # 产出 dsh-mv-hub-1.2.1.tgz（含 web/ 与 ref/）
 ```
 
 ## 许可
